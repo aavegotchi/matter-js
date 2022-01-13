@@ -3812,7 +3812,7 @@ var Common = __webpack_require__(0);
         const composite = body.parentComposite;
         if (composite) {
             const index = Common.indexOf(composite[fromArrayName], body);
-            if (index) {
+            if (index !== -1) {
                 // ok to trust the passed in body here?  not so sure.  use the one from the "other" bodies array instead
                 const bodyToMove = composite[fromArrayName][index];
                 composite[fromArrayName].splice(index, 1);
