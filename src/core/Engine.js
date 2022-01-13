@@ -111,7 +111,7 @@ var Body = require('../body/Body');
 
         // get lists of all bodies and constraints, no matter what composites they are in
         var allBodies = Composite.allBodies(world),
-            nonSleepingBodies = Composite.nonSleepingBodies(world),
+            nonSleepingBodies = Composite.allNonSleepingBodies(world),
             allConstraints = Composite.allConstraints(world);
 
         // if sleeping enabled, call the sleeping controller
