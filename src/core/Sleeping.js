@@ -91,7 +91,11 @@ var Common = require('../core/Common');
     };
   
 
-    Sleeping._switchSleepArrays = function(composite, fromArrayName, toArrayName, body) {
+    Sleeping._switchSleepArrays = function(fromArrayName, body) {
+        var toArrayName = "sleepingBodies";
+        if (fromArrayName === "sleepingBodies") {
+            toArrayName = "nonSleepingBodies";
+        }
         const composite = body.parentComposite;
         if (composite) {
             const index = Common.indexOf(composite[fromArrayName], body);
@@ -107,14 +111,6 @@ var Common = require('../core/Common');
             console.log(`Sleeping._switchSleepArras - body ${body.id}/${body.label} has no parentComposite`);
         }
     }
-    
-    Sleeping._moveCompositeSleepingToNonSleeping = function(composite, body) {
-        Sleeping._switchSleepArrays(composite, "sleepingBodies", "nonSleepingBodies", body );
-    };
-
-    Sleeping._moveCompositeNonSleepingToSleeping = function(body) {
-        Sleeping._switchSleepArrays(composite, "nonSleepingBodies", "sleepingBodies", body );
-    };
     
     /**
      * Set a body as sleeping or awake.
@@ -140,7 +136,7 @@ var Common = require('../core/Common');
             body.angularSpeed = 0;
             body.motion = 0;
 
-            Sleeping._moveCompositeNonSleepingToSleeping(body);
+            Sleeping._switchSleepArrays("nonSleepingBodies", body );
 
             if (!wasSleeping) {
                 Events.trigger(body, 'sleepStart');
@@ -149,7 +145,7 @@ var Common = require('../core/Common');
             body.isSleeping = false;
             body.sleepCounter = 0;
 
-            Sleeping._moveCompositeSleepingToNonSleeping(body);
+            Sleeping._switchSleepArrays("sleepingBodies", body );
 
             if (wasSleeping) {
                 Events.trigger(body, 'sleepEnd');

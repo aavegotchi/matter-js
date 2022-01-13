@@ -1721,6 +1721,8 @@ var Body = __webpack_require__(6);
             parent: null,
             isModified: false,
             bodies: [], 
+            staticBodies: [],
+            nonStaticBodies: [],
             constraints: [], 
             composites: [],
             label: 'Composite',
@@ -1902,7 +1904,13 @@ var Body = __webpack_require__(6);
      * @return {composite} The original composite with the body added
      */
     Composite.addBody = function(composite, body) {
+        body.parentComposite = composite;
         composite.bodies.push(body);
+        if (body.isSleeping) {
+            composite.sleepingBodies.push(body);
+        } else { // isSleeping === false or undefined... 
+            composite.nonSleepingBodies.push(body);
+        }
         Composite.setModified(composite, true, true, false);
         return composite;
     };
@@ -1917,9 +1925,23 @@ var Body = __webpack_require__(6);
      * @return {composite} The original composite with the body removed
      */
     Composite.removeBody = function(composite, body, deep) {
+        body.parentComposite = null;
         var position = Common.indexOf(composite.bodies, body);
         if (position !== -1) {
             Composite.removeBodyAt(composite, position);
+            // since it existed in the main bodies array, find it in the sleeping or nonSleeping bodies... 
+            var nonSleepingPosition = Common.indexOf(composite.nonSleepingBodies, body);
+            if (nonSleepingPosition !== -1) {
+                Composite.removeNonSleepingBodyAt(composite, position);
+            } else {
+                // it wasn't in nonSleeping so find it in sleeping (thinking this is the more expensive op of the two, so doing it second and only if not found in nonSleeping)
+                var sleepingPosition = Common.indexOf(composite.sleepingBodies, body);
+                if (sleepingPosition !== -1) {
+                    Composite.removeSleepingBodyAt(composite, position);
+                } else {
+                    console.log(`Warning - Composite.removeBody - body ${body.id}/${body.label} was not found in sleeping or nonSleeping bodies arrays, it should have been!`);
+                }
+            }
             Composite.setModified(composite, true, true, false);
         }
 
@@ -1943,6 +1965,32 @@ var Body = __webpack_require__(6);
     Composite.removeBodyAt = function(composite, position) {
         composite.bodies.splice(position, 1);
         Composite.setModified(composite, true, true, false);
+        return composite;
+    };
+
+    /**
+     * Removes a sleeping body body from the given composite.
+     * @private
+     * @method removeSleepingBodyAt
+     * @param {composite} composite
+     * @param {number} position
+     * @return {composite} The original composite with the sleeping body removed
+     */
+    Composite.removeSleepingBodyAt = function(composite, position) {
+        composite.sleepingBodies.remove(position, 1);
+        return composite;
+    };
+
+    /**
+     * Removes a non sleeping body body from the given composite.
+     * @private
+     * @method removeSleepingBodyAt
+     * @param {composite} composite
+     * @param {number} position
+     * @return {composite} The original composite with the sleeping body removed
+     */
+    Composite.removeNonSleepingBodyAt = function(composite, position) {
+        composite.nonSleepingBodies.remove(position, 1);
         return composite;
     };
 
@@ -2015,8 +2063,12 @@ var Body = __webpack_require__(6);
         
         if (keepStatic) {
             composite.bodies = composite.bodies.filter(function(body) { return body.isStatic; });
+            composite.sleepingBodies = composite.sleepingBodies.filter(function(body) { return body.isStatic; });
+            composite.nonSleepingBodies = composite.nonSleepingBodies.filter(function(body) { return body.isStatic; });
         } else {
             composite.bodies.length = 0;
+            composite.nonSleepingBodies.length = 0;
+            composite.sleepingBodies.length = 0;
         }
 
         composite.constraints.length = 0;
@@ -2039,6 +2091,36 @@ var Body = __webpack_require__(6);
             bodies = bodies.concat(Composite.allBodies(composite.composites[i]));
 
         return bodies;
+    };
+
+     /**
+     * Returns all sleeping bodies in the given composite, including all sleeping bodies in its children, recursively.
+     * @method allSleepingBodies
+     * @param {composite} composite
+     * @return {body[]} All the sleeping bodies
+     */
+      Composite.allSleepingBodies = function(composite) {
+        var sleepingBodies = [].concat(composite.sleepingBodies);
+
+        for (var i = 0; i < composite.composites.length; i++)
+            sleepingBodies = sleepingBodies.concat(Composite.allSleepingBodies(composite.composites[i]));
+
+        return sleepingBodies;
+    };
+
+     /**
+     * Returns all non sleeping bodies in the given composite, including all sleeping bodies in its children, recursively.
+     * @method allSleepingBodies
+     * @param {composite} composite
+     * @return {body[]} All the non sleeping bodies
+     */
+      Composite.allNonSleepingBodies = function(composite) {
+        var sleepingBodies = [].concat(composite.nonSleepingBodies);
+
+        for (var i = 0; i < composite.composites.length; i++)
+            nonSleepingBodies = nonSleepingBodies.concat(Composite.allNonSleepingBodies(composite.composites[i]));
+
+        return nonSleepingBodies;
     };
 
     /**
@@ -2138,6 +2220,12 @@ var Body = __webpack_require__(6);
 
         return composite;
     };
+ 
+    Composite._translateBodies = function(bodies, translation) {
+        for (var i = 0; i < bodies.length; i++) {
+            Body.translate(bodies[i], translation);
+        }
+    }
 
     /**
      * Translates all children in the composite by a given vector relative to their current positions, 
@@ -2149,10 +2237,15 @@ var Body = __webpack_require__(6);
      */
     Composite.translate = function(composite, translation, recursive) {
         var bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
+        Composite._translateBodies(bodies, translation);
 
-        for (var i = 0; i < bodies.length; i++) {
-            Body.translate(bodies[i], translation);
-        }
+        // not sure this extra stuff is needed bc the only time we care about sleeping/nonSleeping arrays
+        // is in Grid.update (at the moment)
+        var sleepingBodies = recursive ? Composite.allSleepingBodies(composite) : composite.sleepingBodies;
+        Composite._translateBodies(sleepingBodies, translation);
+
+        var nonSleepingBodies = recursive ? Composite.allNonSleepingBodies(composite) : composite.nonSleepingBodies;
+        Composite._translateBodies(nonSleepingBodies, translation);
 
         Composite.setModified(composite, true, true, false);
 
@@ -2474,7 +2567,8 @@ var Axes = __webpack_require__(10);
             area: 0,
             mass: 0,
             inertia: 0,
-            _original: null
+            _original: null,
+            parentComposite: null,
         };
 
         var body = Common.extend(defaults, options);
@@ -3628,6 +3722,7 @@ var Sleeping = {};
 module.exports = Sleeping;
 
 var Events = __webpack_require__(4);
+var Common = __webpack_require__(0);
 
 (function() {
 
@@ -3708,6 +3803,28 @@ var Events = __webpack_require__(4);
         }
     };
   
+
+    Sleeping._switchSleepArrays = function(fromArrayName, body) {
+        var toArrayName = "sleepingBodies";
+        if (fromArrayName === "sleepingBodies") {
+            toArrayName = "nonSleepingBodies";
+        }
+        const composite = body.parentComposite;
+        if (composite) {
+            const index = Common.indexOf(composite[fromArrayName], body);
+            if (index) {
+                // ok to trust the passed in body here?  not so sure.  use the one from the "other" bodies array instead
+                const bodyToMove = composite[fromArrayName][index];
+                composite[fromArrayName].splice(index, 1);
+                composite[toArrayName].push(bodyToMove);
+            } else {
+                console.log(`Sleeping._switchSleepArras - couldn't find body ${body.id}/${body.label} in ${fromArrayName}`);
+            }
+        } else {
+            console.log(`Sleeping._switchSleepArras - body ${body.id}/${body.label} has no parentComposite`);
+        }
+    }
+    
     /**
      * Set a body as sleeping or awake.
      * @method set
@@ -3732,12 +3849,16 @@ var Events = __webpack_require__(4);
             body.angularSpeed = 0;
             body.motion = 0;
 
+            Sleeping._switchSleepArrays("nonSleepingBodies", body );
+
             if (!wasSleeping) {
                 Events.trigger(body, 'sleepStart');
             }
         } else {
             body.isSleeping = false;
             body.sleepCounter = 0;
+
+            Sleeping._switchSleepArrays("sleepingBodies", body );
 
             if (wasSleeping) {
                 Events.trigger(body, 'sleepEnd');
@@ -7772,6 +7893,7 @@ var Body = __webpack_require__(6);
 
         // get lists of all bodies and constraints, no matter what composites they are in
         var allBodies = Composite.allBodies(world),
+            nonSleepingBodies = Composite.nonSleepingBodies(world),
             allConstraints = Composite.allConstraints(world);
 
         // if sleeping enabled, call the sleeping controller
@@ -7798,7 +7920,11 @@ var Body = __webpack_require__(6);
             Grid.clear(grid);
 
         // update the grid buckets based on current bodies
-        Grid.update(grid, allBodies, engine, world.isModified);
+        if (world.isModified) {
+            Grid.update(grid, allBodies, engine, world.isModified);
+        } else {
+            Grid.update(grid, nonSleepingBodies, engine, world.isModified);
+        }
         gridPairs = grid.pairsList;
 
         // clear all composite modified flags
