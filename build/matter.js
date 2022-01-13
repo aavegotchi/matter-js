@@ -3849,19 +3849,17 @@ var Common = __webpack_require__(0);
             body.angularSpeed = 0;
             body.motion = 0;
 
-            Sleeping._switchSleepArrays("nonSleepingBodies", body );
-
             if (!wasSleeping) {
                 Events.trigger(body, 'sleepStart');
+                Sleeping._switchSleepArrays("nonSleepingBodies", body );
             }
         } else {
             body.isSleeping = false;
             body.sleepCounter = 0;
 
-            Sleeping._switchSleepArrays("sleepingBodies", body );
-
             if (wasSleeping) {
                 Events.trigger(body, 'sleepEnd');
+                Sleeping._switchSleepArrays("sleepingBodies", body );
             }
         }
     };
