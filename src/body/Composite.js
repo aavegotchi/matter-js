@@ -430,7 +430,7 @@ var Body = require('./Body');
      * @return {body[]} All the non sleeping bodies
      */
       Composite.allNonSleepingBodies = function(composite) {
-        var sleepingBodies = [].concat(composite.nonSleepingBodies);
+        var nonSleepingBodies = [].concat(composite.nonSleepingBodies);
 
         for (var i = 0; i < composite.composites.length; i++)
             nonSleepingBodies = nonSleepingBodies.concat(Composite.allNonSleepingBodies(composite.composites[i]));
