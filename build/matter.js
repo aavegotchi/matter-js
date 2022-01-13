@@ -3818,10 +3818,10 @@ var Common = __webpack_require__(0);
                 composite[fromArrayName].splice(index, 1);
                 composite[toArrayName].push(bodyToMove);
             } else {
-                console.log(`Sleeping._switchSleepArras - couldn't find body ${body.id}/${body.label} in ${fromArrayName}`);
+                console.log(`Sleeping._switchSleepArrays - couldn't find body ${body.id}/${body.label} in ${fromArrayName}`);
             }
         } else {
-            console.log(`Sleeping._switchSleepArras - body ${body.id}/${body.label} has no parentComposite`);
+            console.log(`Sleeping._switchSleepArrays - body ${body.id}/${body.label} has no parentComposite`);
         }
     }
     
