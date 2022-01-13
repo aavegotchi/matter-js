@@ -96,7 +96,8 @@ var Axes = require('../geometry/Axes');
             area: 0,
             mass: 0,
             inertia: 0,
-            _original: null
+            _original: null,
+            parentComposite: null,
         };
 
         var body = Common.extend(defaults, options);

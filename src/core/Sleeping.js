@@ -9,6 +9,7 @@ var Sleeping = {};
 module.exports = Sleeping;
 
 var Events = require('./Events');
+var Common = require('../core/Common');
 
 (function() {
 
@@ -89,6 +90,32 @@ var Events = require('./Events');
         }
     };
   
+
+    Sleeping._switchSleepArrays = function(composite, fromArrayName, toArrayName, body) {
+        const composite = body.parentComposite;
+        if (composite) {
+            const index = Common.indexOf(composite[fromArrayName], body);
+            if (index) {
+                // ok to trust the passed in body here?  not so sure.  use the one from the "other" bodies array instead
+                const bodyToMove = composite[fromArrayName][index];
+                composite[fromArrayName].splice(index, 1);
+                composite[toArrayName].push(bodyToMove);
+            } else {
+                console.log(`Sleeping._switchSleepArras - couldn't find body ${body.id}/${body.label} in ${fromArrayName}`);
+            }
+        } else {
+            console.log(`Sleeping._switchSleepArras - body ${body.id}/${body.label} has no parentComposite`);
+        }
+    }
+    
+    Sleeping._moveCompositeSleepingToNonSleeping = function(composite, body) {
+        Sleeping._switchSleepArrays(composite, "sleepingBodies", "nonSleepingBodies", body );
+    };
+
+    Sleeping._moveCompositeNonSleepingToSleeping = function(body) {
+        Sleeping._switchSleepArrays(composite, "nonSleepingBodies", "sleepingBodies", body );
+    };
+    
     /**
      * Set a body as sleeping or awake.
      * @method set
@@ -113,12 +140,16 @@ var Events = require('./Events');
             body.angularSpeed = 0;
             body.motion = 0;
 
+            Sleeping._moveCompositeNonSleepingToSleeping(body);
+
             if (!wasSleeping) {
                 Events.trigger(body, 'sleepStart');
             }
         } else {
             body.isSleeping = false;
             body.sleepCounter = 0;
+
+            Sleeping._moveCompositeSleepingToNonSleeping(body);
 
             if (wasSleeping) {
                 Events.trigger(body, 'sleepEnd');
