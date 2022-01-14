@@ -115,11 +115,11 @@ var Body = require('../body/Body');
             allConstraints = Composite.allConstraints(world);
 
         // if sleeping enabled, call the sleeping controller
-        if (engine.enableSleeping)
-            Sleeping.update(allBodies, timing.timeScale);
+        //  if (engine.enableSleeping)
+        //    Sleeping.update(allBodies, timing.timeScale);
 
         // applies gravity to all bodies
-        Engine._bodiesApplyGravity(allBodies, engine.gravity);
+        //Engine._bodiesApplyGravity(allBodies, engine.gravity);
 
         // update all body position and rotation by integration
         Engine._bodiesUpdate(allBodies, delta, timing.timeScale, correction, world.bounds);
