@@ -103,32 +103,32 @@ var Body = require('../body/Body');
         timing.lastDelta = delta * timing.timeScale;
 
         // create an event object
-        var event = {
-            timestamp: timing.timestamp
-        };
+        // var event = {
+        //     timestamp: timing.timestamp
+        // };
 
-        Events.trigger(engine, 'beforeUpdate', event);
+        // Events.trigger(engine, 'beforeUpdate', event);
 
         // get lists of all bodies and constraints, no matter what composites they are in
-        var allBodies = Composite.allBodies(world),
-            allConstraints = Composite.allConstraints(world);
+        var allBodies = Composite.allBodies(world);
+        // allConstraints = Composite.allConstraints(world);
 
         // if sleeping enabled, call the sleeping controller
-        if (engine.enableSleeping)
-            Sleeping.update(allBodies, timing.timeScale);
+        // if (engine.enableSleeping)
+        //     Sleeping.update(allBodies, timing.timeScale);
 
         // applies gravity to all bodies
-        Engine._bodiesApplyGravity(allBodies, engine.gravity);
+        // Engine._bodiesApplyGravity(allBodies, engine.gravity);
 
         // update all body position and rotation by integration
         Engine._bodiesUpdate(allBodies, delta, timing.timeScale, correction, world.bounds);
 
         // update all constraints (first pass)
-        Constraint.preSolveAll(allBodies);
-        for (i = 0; i < engine.constraintIterations; i++) {
-            Constraint.solveAll(allConstraints, timing.timeScale);
-        }
-        Constraint.postSolveAll(allBodies);
+        // Constraint.preSolveAll(allBodies);
+        // for (i = 0; i < engine.constraintIterations; i++) {
+        //     Constraint.solveAll(allConstraints, timing.timeScale);
+        // }
+        // Constraint.postSolveAll(allBodies);
 
         // broadphase pass: find potential collision pairs
 
@@ -155,44 +155,44 @@ var Body = require('../body/Body');
         Pairs.removeOld(pairs, timestamp);
 
         // wake up bodies involved in collisions
-        if (engine.enableSleeping)
-            Sleeping.afterCollisions(pairs.list, timing.timeScale);
+        // if (engine.enableSleeping)
+        //     Sleeping.afterCollisions(pairs.list, timing.timeScale);
 
         // trigger collision events
         if (pairs.collisionStart.length > 0)
             Events.trigger(engine, 'collisionStart', { pairs: pairs.collisionStart });
 
         // iteratively resolve position between collisions
-        Resolver.preSolvePosition(pairs.list);
-        for (i = 0; i < engine.positionIterations; i++) {
-            Resolver.solvePosition(pairs.list, timing.timeScale);
-        }
-        Resolver.postSolvePosition(allBodies);
+        // Resolver.preSolvePosition(pairs.list);
+        // for (i = 0; i < engine.positionIterations; i++) {
+        //     Resolver.solvePosition(pairs.list, timing.timeScale);
+        // }
+        // Resolver.postSolvePosition(allBodies);
 
         // update all constraints (second pass)
-        Constraint.preSolveAll(allBodies);
-        for (i = 0; i < engine.constraintIterations; i++) {
-            Constraint.solveAll(allConstraints, timing.timeScale);
-        }
-        Constraint.postSolveAll(allBodies);
+        // Constraint.preSolveAll(allBodies);
+        // for (i = 0; i < engine.constraintIterations; i++) {
+        //     Constraint.solveAll(allConstraints, timing.timeScale);
+        // }
+        // Constraint.postSolveAll(allBodies);
 
         // iteratively resolve velocity between collisions
-        Resolver.preSolveVelocity(pairs.list);
-        for (i = 0; i < engine.velocityIterations; i++) {
-            Resolver.solveVelocity(pairs.list, timing.timeScale);
-        }
+        // Resolver.preSolveVelocity(pairs.list);
+        // for (i = 0; i < engine.velocityIterations; i++) {
+        //     Resolver.solveVelocity(pairs.list, timing.timeScale);
+        // }
 
         // trigger collision events
-        if (pairs.collisionActive.length > 0)
-            Events.trigger(engine, 'collisionActive', { pairs: pairs.collisionActive });
+        // if (pairs.collisionActive.length > 0)
+        //     Events.trigger(engine, 'collisionActive', { pairs: pairs.collisionActive });
 
         if (pairs.collisionEnd.length > 0)
             Events.trigger(engine, 'collisionEnd', { pairs: pairs.collisionEnd });
 
         // clear force buffers
-        Engine._bodiesClearForces(allBodies);
+        // Engine._bodiesClearForces(allBodies);
 
-        Events.trigger(engine, 'afterUpdate', event);
+        // Events.trigger(engine, 'afterUpdate', event);
 
         // log the time elapsed computing this update
         engine.timing.lastElapsed = Common.now() - startTime;
