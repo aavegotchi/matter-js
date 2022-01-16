@@ -274,12 +274,13 @@ var Detector = require('./Detector');
                 pairId = Pair.id(body, bodyB),
                 pair = grid.pairs[pairId];
 
-            if (pair)
+            if (pair) {
                 pair[2] -= 1;
 
-            // delete pair on the spot instead of running _createActivePairsList to remove pairs
-            if(pair[2] === 0) 
-                delete grid.pairs[pairId];
+                // delete pair on the spot instead of running _createActivePairsList to remove pairs
+                if(pair[2] === 0) 
+                    delete grid.pairs[pairId];   
+            }
         }
     };
 
