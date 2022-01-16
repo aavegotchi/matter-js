@@ -2396,7 +2396,7 @@ var Sleeping = __webpack_require__(7);
 var Render = __webpack_require__(16);
 var Common = __webpack_require__(0);
 var Bounds = __webpack_require__(1);
-var Axes = __webpack_require__(10);
+var Axes = __webpack_require__(11);
 
 (function() {
 
@@ -3770,7 +3770,7 @@ var Vertices = __webpack_require__(3);
 var Vector = __webpack_require__(2);
 var Sleeping = __webpack_require__(7);
 var Bounds = __webpack_require__(1);
-var Axes = __webpack_require__(10);
+var Axes = __webpack_require__(11);
 var Common = __webpack_require__(0);
 
 (function() {
@@ -4238,6 +4238,102 @@ var Common = __webpack_require__(0);
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
+* The `Matter.Detector` module contains methods for detecting collisions given a set of pairs.
+*
+* @class Detector
+*/
+
+// TODO: speculative contacts
+
+var Detector = {};
+
+module.exports = Detector;
+
+var SAT = __webpack_require__(14);
+var Pair = __webpack_require__(10);
+var Bounds = __webpack_require__(1);
+
+(function() {
+
+    /**
+     * Finds all collisions given a list of pairs.
+     * @method collisions
+     * @param {pair[]} broadphasePairs
+     * @param {engine} engine
+     * @return {array} collisions
+     */
+    Detector.collisions = function(broadphasePairs, engine) {
+        var collisions = [],
+            pairsTable = engine.pairs.table;
+
+        for (var i = 0; i < broadphasePairs.length; i++) {
+            var bodyA = broadphasePairs[i][0], 
+                bodyB = broadphasePairs[i][1];
+
+            if ((bodyA.isStatic || bodyA.isSleeping) && (bodyB.isStatic || bodyB.isSleeping))
+                continue;
+            
+            if (!Detector.canCollide(bodyA.collisionFilter, bodyB.collisionFilter))
+                continue;
+
+            // mid phase
+            if (Bounds.overlaps(bodyA.bounds, bodyB.bounds)) {
+                for (var j = bodyA.parts.length > 1 ? 1 : 0; j < bodyA.parts.length; j++) {
+                    var partA = bodyA.parts[j];
+
+                    for (var k = bodyB.parts.length > 1 ? 1 : 0; k < bodyB.parts.length; k++) {
+                        var partB = bodyB.parts[k];
+
+                        if ((partA === bodyA && partB === bodyB) || Bounds.overlaps(partA.bounds, partB.bounds)) {
+                            // find a previous collision we could reuse
+                            var pairId = Pair.id(partA, partB),
+                                pair = pairsTable[pairId],
+                                previousCollision;
+
+                            if (pair && pair.isActive) {
+                                previousCollision = pair.collision;
+                            } else {
+                                previousCollision = null;
+                            }
+
+                            // narrow phase
+                            var collision = SAT.collides(partA, partB, previousCollision);
+
+                            if (collision.collided) {
+                                collisions.push(collision);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return collisions;
+    };
+
+    /**
+     * Returns `true` if both supplied collision filters will allow a collision to occur.
+     * See `body.collisionFilter` for more information.
+     * @method canCollide
+     * @param {} filterA
+     * @param {} filterB
+     * @return {bool} `true` if collision can occur
+     */
+    Detector.canCollide = function(filterA, filterB) {
+        if (filterA.group === filterB.group && filterA.group !== 0)
+            return filterA.group > 0;
+
+        return (filterA.mask & filterB.category) !== 0 && (filterB.mask & filterA.category) !== 0;
+    };
+
+})();
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
 * The `Matter.Pair` module contains methods for creating and manipulating collision pairs.
 *
 * @class Pair
@@ -4367,7 +4463,7 @@ var Contact = __webpack_require__(17);
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -4437,7 +4533,7 @@ var Common = __webpack_require__(0);
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -4801,7 +4897,7 @@ var Vector = __webpack_require__(2);
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -5002,102 +5098,6 @@ var Common = __webpack_require__(0);
             x: x / (element.clientWidth / (element.width || element.clientWidth) * pixelRatio),
             y: y / (element.clientHeight / (element.height || element.clientHeight) * pixelRatio)
         };
-    };
-
-})();
-
-
-/***/ }),
-/* 13 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
-* The `Matter.Detector` module contains methods for detecting collisions given a set of pairs.
-*
-* @class Detector
-*/
-
-// TODO: speculative contacts
-
-var Detector = {};
-
-module.exports = Detector;
-
-var SAT = __webpack_require__(14);
-var Pair = __webpack_require__(9);
-var Bounds = __webpack_require__(1);
-
-(function() {
-
-    /**
-     * Finds all collisions given a list of pairs.
-     * @method collisions
-     * @param {pair[]} broadphasePairs
-     * @param {engine} engine
-     * @return {array} collisions
-     */
-    Detector.collisions = function(broadphasePairs, engine) {
-        var collisions = [],
-            pairsTable = engine.pairs.table;
-
-        for (var i = 0; i < broadphasePairs.length; i++) {
-            var bodyA = broadphasePairs[i][0], 
-                bodyB = broadphasePairs[i][1];
-
-            if ((bodyA.isStatic || bodyA.isSleeping) && (bodyB.isStatic || bodyB.isSleeping))
-                continue;
-            
-            if (!Detector.canCollide(bodyA.collisionFilter, bodyB.collisionFilter))
-                continue;
-
-            // mid phase
-            if (Bounds.overlaps(bodyA.bounds, bodyB.bounds)) {
-                for (var j = bodyA.parts.length > 1 ? 1 : 0; j < bodyA.parts.length; j++) {
-                    var partA = bodyA.parts[j];
-
-                    for (var k = bodyB.parts.length > 1 ? 1 : 0; k < bodyB.parts.length; k++) {
-                        var partB = bodyB.parts[k];
-
-                        if ((partA === bodyA && partB === bodyB) || Bounds.overlaps(partA.bounds, partB.bounds)) {
-                            // find a previous collision we could reuse
-                            var pairId = Pair.id(partA, partB),
-                                pair = pairsTable[pairId],
-                                previousCollision;
-
-                            if (pair && pair.isActive) {
-                                previousCollision = pair.collision;
-                            } else {
-                                previousCollision = null;
-                            }
-
-                            // narrow phase
-                            var collision = SAT.collides(partA, partB, previousCollision);
-
-                            if (collision.collided) {
-                                collisions.push(collision);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return collisions;
-    };
-
-    /**
-     * Returns `true` if both supplied collision filters will allow a collision to occur.
-     * See `body.collisionFilter` for more information.
-     * @method canCollide
-     * @param {} filterA
-     * @param {} filterB
-     * @return {bool} `true` if collision can occur
-     */
-    Detector.canCollide = function(filterA, filterB) {
-        if (filterA.group === filterB.group && filterA.group !== 0)
-            return filterA.group > 0;
-
-        return (filterA.mask & filterB.category) !== 0 && (filterB.mask & filterA.category) !== 0;
     };
 
 })();
@@ -5757,7 +5757,7 @@ var Composite = __webpack_require__(5);
 var Bounds = __webpack_require__(1);
 var Events = __webpack_require__(4);
 var Vector = __webpack_require__(2);
-var Mouse = __webpack_require__(12);
+var Mouse = __webpack_require__(13);
 
 (function() {
 
@@ -7675,7 +7675,7 @@ module.exports = Engine;
 
 var Sleeping = __webpack_require__(7);
 var Resolver = __webpack_require__(19);
-var Detector = __webpack_require__(13);
+var Detector = __webpack_require__(9);
 var Pairs = __webpack_require__(20);
 var Grid = __webpack_require__(21);
 var Events = __webpack_require__(4);
@@ -8572,7 +8572,7 @@ var Pairs = {};
 
 module.exports = Pairs;
 
-var Pair = __webpack_require__(9);
+var Pair = __webpack_require__(10);
 var Common = __webpack_require__(0);
 
 (function() {
@@ -8737,8 +8737,9 @@ var Grid = {};
 
 module.exports = Grid;
 
-var Pair = __webpack_require__(9);
+var Pair = __webpack_require__(10);
 var Common = __webpack_require__(0);
+var Detector = __webpack_require__(9);
 
 (function() {
 
@@ -8826,6 +8827,14 @@ var Common = __webpack_require__(0);
                         var isInsideOldRegion = (col >= body.region.startCol && col <= body.region.endCol
                                                 && row >= body.region.startRow && row <= body.region.endRow);
 
+                        // create bucket first and add pair to the list
+                        // add to new region buckets
+                        if (body.region === newRegion || (isInsideNewRegion && !isInsideOldRegion) || forceUpdate) {
+                            if (!bucket)
+                                bucket = Grid._createBucket(buckets, bucketId);
+                            Grid._bucketAddBody(grid, bucket, body);
+                        }
+
                         // remove from old region buckets
                         if (!isInsideNewRegion && isInsideOldRegion) {
                             if (isInsideOldRegion) {
@@ -8834,12 +8843,6 @@ var Common = __webpack_require__(0);
                             }
                         }
 
-                        // add to new region buckets
-                        if (body.region === newRegion || (isInsideNewRegion && !isInsideOldRegion) || forceUpdate) {
-                            if (!bucket)
-                                bucket = Grid._createBucket(buckets, bucketId);
-                            Grid._bucketAddBody(grid, bucket, body);
-                        }
                     }
                 }
 
@@ -8853,7 +8856,7 @@ var Common = __webpack_require__(0);
 
         // update pairs list only if pairs changed (i.e. a body changed region)
         if (gridChanged)
-            grid.pairsList = Grid._createActivePairsList(grid);
+            grid.pairsList = Object.values(grid.pairs);
     };
 
     /**
@@ -8960,7 +8963,8 @@ var Common = __webpack_require__(0);
         for (var i = 0; i < bucket.length; i++) {
             var bodyB = bucket[i];
 
-            if (body.id === bodyB.id || (body.isStatic && bodyB.isStatic))
+            // Create pair only if bodies can collide
+            if (body.id === bodyB.id || (body.isStatic && bodyB.isStatic) || !Detector.canCollide(body.collisionFilter,bodyB.collisionFilter))
                 continue;
 
             // keep track of the number of buckets the pair exists in
@@ -9001,39 +9005,43 @@ var Common = __webpack_require__(0);
 
             if (pair)
                 pair[2] -= 1;
+
+            // delete pair on the spot instead of running _createActivePairsList to remove pairs
+            if(pair[2] === 0) 
+                delete grid.pairs[pairId];
         }
     };
 
-    /**
-     * Generates a list of the active pairs in the grid.
-     * @method _createActivePairsList
-     * @private
-     * @param {} grid
-     * @return [] pairs
-     */
-    Grid._createActivePairsList = function(grid) {
-        var pairKeys,
-            pair,
-            pairs = [];
+    // /**
+    //  * Generates a list of the active pairs in the grid.
+    //  * @method _createActivePairsList
+    //  * @private
+    //  * @param {} grid
+    //  * @return [] pairs
+    //  */
+    // Grid._createActivePairsList = function(grid) {
+    //     var pairKeys,
+    //         pair,
+    //         pairs = [];
 
-        // grid.pairs is used as a hashmap
-        pairKeys = Common.keys(grid.pairs);
+    //     // grid.pairs is used as a hashmap
+    //     pairKeys = Common.keys(grid.pairs);
 
-        // iterate over grid.pairs
-        for (var k = 0; k < pairKeys.length; k++) {
-            pair = grid.pairs[pairKeys[k]];
+    //     // iterate over grid.pairs
+    //     for (var k = 0; k < pairKeys.length; k++) {
+    //         pair = grid.pairs[pairKeys[k]];
 
-            // if pair exists in at least one bucket
-            // it is a pair that needs further collision testing so push it
-            if (pair[2] > 0) {
-                pairs.push(pair);
-            } else {
-                delete grid.pairs[pairKeys[k]];
-            }
-        }
+    //         // if pair exists in at least one bucket
+    //         // it is a pair that needs further collision testing so push it
+    //         if (pair[2] > 0) {
+    //             pairs.push(pair);
+    //         } else {
+    //             delete grid.pairs[pairKeys[k]];
+    //         }
+    //     }
 
-        return pairs;
-    };
+    //     return pairs;
+    // };
     
 })();
 
@@ -9044,8 +9052,8 @@ var Common = __webpack_require__(0);
 
 var Matter = module.exports = __webpack_require__(23);
 
-Matter.Axes = __webpack_require__(10);
-Matter.Bodies = __webpack_require__(11);
+Matter.Axes = __webpack_require__(11);
+Matter.Bodies = __webpack_require__(12);
 Matter.Body = __webpack_require__(6);
 Matter.Bounds = __webpack_require__(1);
 Matter.Common = __webpack_require__(0);
@@ -9053,13 +9061,13 @@ Matter.Composite = __webpack_require__(5);
 Matter.Composites = __webpack_require__(24);
 Matter.Constraint = __webpack_require__(8);
 Matter.Contact = __webpack_require__(17);
-Matter.Detector = __webpack_require__(13);
+Matter.Detector = __webpack_require__(9);
 Matter.Engine = __webpack_require__(18);
 Matter.Events = __webpack_require__(4);
 Matter.Grid = __webpack_require__(21);
-Matter.Mouse = __webpack_require__(12);
+Matter.Mouse = __webpack_require__(13);
 Matter.MouseConstraint = __webpack_require__(25);
-Matter.Pair = __webpack_require__(9);
+Matter.Pair = __webpack_require__(10);
 Matter.Pairs = __webpack_require__(20);
 Matter.Plugin = __webpack_require__(15);
 Matter.Query = __webpack_require__(26);
@@ -9191,7 +9199,7 @@ var Composite = __webpack_require__(5);
 var Constraint = __webpack_require__(8);
 var Common = __webpack_require__(0);
 var Body = __webpack_require__(6);
-var Bodies = __webpack_require__(11);
+var Bodies = __webpack_require__(12);
 var deprecated = Common.deprecated;
 
 (function() {
@@ -9532,9 +9540,9 @@ module.exports = MouseConstraint;
 
 var Vertices = __webpack_require__(3);
 var Sleeping = __webpack_require__(7);
-var Mouse = __webpack_require__(12);
+var Mouse = __webpack_require__(13);
 var Events = __webpack_require__(4);
-var Detector = __webpack_require__(13);
+var Detector = __webpack_require__(9);
 var Constraint = __webpack_require__(8);
 var Composite = __webpack_require__(5);
 var Common = __webpack_require__(0);
@@ -9799,7 +9807,7 @@ module.exports = Query;
 var Vector = __webpack_require__(2);
 var SAT = __webpack_require__(14);
 var Bounds = __webpack_require__(1);
-var Bodies = __webpack_require__(11);
+var Bodies = __webpack_require__(12);
 var Vertices = __webpack_require__(3);
 
 (function() {

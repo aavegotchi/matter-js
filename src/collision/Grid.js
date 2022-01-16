@@ -10,6 +10,7 @@ module.exports = Grid;
 
 var Pair = require('./Pair');
 var Common = require('../core/Common');
+var Detector = require('./Detector');
 
 (function() {
 
@@ -97,6 +98,14 @@ var Common = require('../core/Common');
                         var isInsideOldRegion = (col >= body.region.startCol && col <= body.region.endCol
                                                 && row >= body.region.startRow && row <= body.region.endRow);
 
+                        // create bucket first and add pair to the list
+                        // add to new region buckets
+                        if (body.region === newRegion || (isInsideNewRegion && !isInsideOldRegion) || forceUpdate) {
+                            if (!bucket)
+                                bucket = Grid._createBucket(buckets, bucketId);
+                            Grid._bucketAddBody(grid, bucket, body);
+                        }
+
                         // remove from old region buckets
                         if (!isInsideNewRegion && isInsideOldRegion) {
                             if (isInsideOldRegion) {
@@ -105,12 +114,6 @@ var Common = require('../core/Common');
                             }
                         }
 
-                        // add to new region buckets
-                        if (body.region === newRegion || (isInsideNewRegion && !isInsideOldRegion) || forceUpdate) {
-                            if (!bucket)
-                                bucket = Grid._createBucket(buckets, bucketId);
-                            Grid._bucketAddBody(grid, bucket, body);
-                        }
                     }
                 }
 
@@ -124,7 +127,7 @@ var Common = require('../core/Common');
 
         // update pairs list only if pairs changed (i.e. a body changed region)
         if (gridChanged)
-            grid.pairsList = Grid._createActivePairsList(grid);
+            grid.pairsList = Object.values(grid.pairs);
     };
 
     /**
@@ -231,7 +234,8 @@ var Common = require('../core/Common');
         for (var i = 0; i < bucket.length; i++) {
             var bodyB = bucket[i];
 
-            if (body.id === bodyB.id || (body.isStatic && bodyB.isStatic))
+            // Create pair only if bodies can collide
+            if (body.id === bodyB.id || (body.isStatic && bodyB.isStatic) || !Detector.canCollide(body.collisionFilter,bodyB.collisionFilter))
                 continue;
 
             // keep track of the number of buckets the pair exists in
@@ -272,38 +276,42 @@ var Common = require('../core/Common');
 
             if (pair)
                 pair[2] -= 1;
+
+            // delete pair on the spot instead of running _createActivePairsList to remove pairs
+            if(pair[2] === 0) 
+                delete grid.pairs[pairId];
         }
     };
 
-    /**
-     * Generates a list of the active pairs in the grid.
-     * @method _createActivePairsList
-     * @private
-     * @param {} grid
-     * @return [] pairs
-     */
-    Grid._createActivePairsList = function(grid) {
-        var pairKeys,
-            pair,
-            pairs = [];
+    // /**
+    //  * Generates a list of the active pairs in the grid.
+    //  * @method _createActivePairsList
+    //  * @private
+    //  * @param {} grid
+    //  * @return [] pairs
+    //  */
+    // Grid._createActivePairsList = function(grid) {
+    //     var pairKeys,
+    //         pair,
+    //         pairs = [];
 
-        // grid.pairs is used as a hashmap
-        pairKeys = Common.keys(grid.pairs);
+    //     // grid.pairs is used as a hashmap
+    //     pairKeys = Common.keys(grid.pairs);
 
-        // iterate over grid.pairs
-        for (var k = 0; k < pairKeys.length; k++) {
-            pair = grid.pairs[pairKeys[k]];
+    //     // iterate over grid.pairs
+    //     for (var k = 0; k < pairKeys.length; k++) {
+    //         pair = grid.pairs[pairKeys[k]];
 
-            // if pair exists in at least one bucket
-            // it is a pair that needs further collision testing so push it
-            if (pair[2] > 0) {
-                pairs.push(pair);
-            } else {
-                delete grid.pairs[pairKeys[k]];
-            }
-        }
+    //         // if pair exists in at least one bucket
+    //         // it is a pair that needs further collision testing so push it
+    //         if (pair[2] > 0) {
+    //             pairs.push(pair);
+    //         } else {
+    //             delete grid.pairs[pairKeys[k]];
+    //         }
+    //     }
 
-        return pairs;
-    };
+    //     return pairs;
+    // };
     
 })();
