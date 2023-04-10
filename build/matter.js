@@ -2883,10 +2883,8 @@ var Axes = __webpack_require__(11);
      * @param {vector} velocity
      */
     Body.setVelocity = function(body, velocity) {
-        /* don't modify previous position when velocity is changed, that is super weird and may be causing issues
         body.positionPrev.x = body.position.x - velocity.x;
         body.positionPrev.y = body.position.y - velocity.y;
-        */
         body.velocity.x = velocity.x;
         body.velocity.y = velocity.y;
         body.speed = Vector.magnitude(body.velocity);
